@@ -1,3 +1,4 @@
+
 # Copyright 2016 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -73,17 +74,13 @@ TODO: Usage samples
 import datetime
 import json
 
-from six.moves import http_client
-from six.moves import urllib
-
 from google.auth import _helpers
 from google.auth import crypt
 from google.auth import credentials
-from google.auth import exceptions
 from google.auth import jwt
+from google.oauth2 import _client
 
 _DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in sections
-_JWT_TOKEN_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:jwt-bearer'
 
 
 class Credentials(credentials.SigningCredentials,
@@ -258,38 +255,10 @@ class Credentials(credentials.SigningCredentials,
     @_helpers.copy_docstring(credentials.Credentials)
     def refresh(self, request):
         assertion = self._make_authorization_grant_assertion()
-
-        body = urllib.parse.urlencode({
-            'assertion': assertion,
-            'grant_type': _JWT_TOKEN_GRANT_TYPE,
-        })
-
-        headers = {
-            'content-type': 'application/x-www-form-urlencoded',
-        }
-
-        response = request(
-            url=self._token_uri, method='POST', headers=headers, body=body)
-
-        if response.status != http_client.OK:
-            # Try to decode the response and extract details.
-            try:
-                error_data = json.loads(response.data.decode('utf-8'))
-                error_details = ': '.join([
-                    error_data['error'],
-                    error_data.get('error_description')])
-            # If not details could be extracted, use the response data.
-            except (KeyError, ValueError):
-                error_details = response.data
-
-            raise exceptions.RefreshError(response.status, error_details)
-
-        response_data = json.loads(response.data.decode('utf-8'))
-
-        self.token = response_data['access_token']
-        expires_in = response_data['expires_in']
-
-        self.expiry = _helpers.now() + datetime.timedelta(seconds=expires_in)
+        access_token, expiry, _ = _client.jwt_grant(
+            request, self._token_uri, assertion)
+        self.token = access_token
+        self.expiry = expiry
 
     @_helpers.copy_docstring(credentials.SigningCredentials)
     def sign_bytes(self, message):
