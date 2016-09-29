@@ -36,14 +36,17 @@ class Response(object):
     @abc.abstractproperty
     def status(self):
         """int: The HTTP status code."""
+        raise NotImplementedError('status must be implemented.')
 
     @abc.abstractproperty
     def headers(self):
         """Mapping: The HTTP response headers."""
+        raise NotImplementedError('headers must be implemented.')
 
     @abc.abstractproperty
     def data(self):
         """bytes: The response body."""
+        raise NotImplementedError('headers must be implemented.')
 
 
 @six.add_metaclass(abc.ABCMeta)

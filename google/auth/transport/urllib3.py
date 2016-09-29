@@ -24,7 +24,7 @@ from google.auth import transport
 
 
 class Request(transport.Request):
-    """Urllib3 request adapter
+    """urllib3 request adapter
 
     Args:
         http (urllib3.requests.RequestMethods): An instance of any urllib3
@@ -36,7 +36,8 @@ class Request(transport.Request):
 
     def __call__(self, url, method='GET', body=None, headers=None,
                  timeout=None, **kwargs):
-        """
+        """Make an HTTP request using urllib3.
+
         Args:
             url (str): The URI to be requested.
             method (str): The HTTP method to use for the request. Defaults
@@ -55,7 +56,7 @@ class Request(transport.Request):
         Raises:
             google.auth.exceptions.TransportError: If any exception occurred.
         """
-        # Urllib3 uses a sentinel default value for timeout, so only set it if
+        # urllib3 uses a sentinel default value for timeout, so only set it if
         # specified.
         if timeout is not None:
             kwargs['timeout'] = timeout
