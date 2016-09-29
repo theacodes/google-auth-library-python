@@ -21,6 +21,7 @@ from google.auth import compute_engine
 from google.auth import exceptions
 from google.auth import jwt
 from google.auth.compute_engine import _metadata
+import google.oauth2.credentials
 
 # Environment variable for explicit application default credentials.
 _CREDENTIALS_ENV = 'GOOGLE_APPLICATION_CREDENTIALS'
@@ -29,6 +30,9 @@ _CREDENTIALS_ENV = 'GOOGLE_APPLICATION_CREDENTIALS'
 _AUTHORIZED_USER_TYPE = 'authorized_user'
 _SERVICE_ACCOUNT_TYPE = 'service_account'
 _VALID_TYPES = (_AUTHORIZED_USER_TYPE, _SERVICE_ACCOUNT_TYPE)
+
+# The Google OAuth 2.0 token endpoint. Used for authorized user credentials.
+_GOOGLE_OAUTH2_TOKEN_ENDPOINT = 'https://accounts.google.com/o/oauth2/token'
 
 # The ~/.config subdirectory containing gcloud credentials.
 _CLOUDSDK_CONFIG_DIRECTORY = 'gcloud'
@@ -59,6 +63,12 @@ def _load_credentials_from_file(filename):
     credential_type = info.get('type')
 
     if credential_type == _AUTHORIZED_USER_TYPE:
+        return google.oauth2.credentials.Credentials(
+            None,
+            refresh_token=info['refresh_token'],
+            token_uri=_GOOGLE_OAUTH2_TOKEN_ENDPOINT,
+            client_id=info['client_id'],
+            client_secret=info['client_secret'])
         raise NotImplementedError(
             'Authorized user credentials are not yet implemented.')
 
