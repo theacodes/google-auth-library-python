@@ -69,8 +69,6 @@ def _load_credentials_from_file(filename):
             token_uri=_GOOGLE_OAUTH2_TOKEN_ENDPOINT,
             client_id=info['client_id'],
             client_secret=info['client_secret'])
-        raise NotImplementedError(
-            'Authorized user credentials are not yet implemented.')
 
     if credential_type == _SERVICE_ACCOUNT_TYPE:
         # TODO: This should actually be a weird polymorphic class that

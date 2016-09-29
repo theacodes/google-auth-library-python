@@ -13,6 +13,8 @@
 # limitations under the License.
 
 """OAuth 2.0 Credentials
+
+TODO
 """
 
 from google.auth import _helpers
@@ -23,6 +25,8 @@ from google.oauth2 import _client
 class Credentials(credentials.ScopedCredentials,
                   credentials.Credentials):
     """OAuth 2.0 Credentials
+
+    TODO
     """
 
     def __init__(self, token, refresh_token=None, token_uri=None,
@@ -30,8 +34,22 @@ class Credentials(credentials.ScopedCredentials,
         """Constructor
 
         Args:
-            scopes (Union[str, Sequence]): Scopes to request.
-            token_uri (str): The OAuth 2.0 Token URI.
+            token (Optional(str)): The OAuth 2.0 access token. Can be None
+                if refresh information is provided.
+            refresh_token (str): The OAuth 2.0 refresh token. If specified,
+                credentials can be refreshed.
+            token_uri (str): The OAuth 2.0 authorization server's token
+                endpoint URI. Must be specified for refresh, can be left as
+                None if the token can not be refreshed.
+            client_id (str): The OAuth 2.0 client ID. Must be specified for
+                refresh, can be left as None if the token can not be refreshed.
+            client_secret(str): The OAuth 2.0 client secret. Must be specified
+                for refresh, can be left as None if the token can not be
+                refreshed.
+            scopes (Union[str, Sequence]): The scopes that were originally used
+                to obtain authorization. This is a purely informative parameter
+                that can be used by :meth:`has_scopes`. OAuth 2.0 credentials
+                can not request additional scopes after authorization.
         """
         super(Credentials, self).__init__()
         self.token = token
@@ -60,5 +78,5 @@ class Credentials(credentials.ScopedCredentials,
             self._client_secret)
 
         self.token = access_token
-        self.refresh_token = refresh_token
         self.expiry = expiry
+        self._refresh_token = refresh_token

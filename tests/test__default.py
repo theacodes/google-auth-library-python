@@ -22,11 +22,19 @@ from google.auth import _default
 from google.auth import compute_engine
 from google.auth import exceptions
 from google.auth import jwt
+import google.oauth2.credentials
 
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 AUTHORIZED_USER_FILE = os.path.join(DATA_DIR, 'authorized_user.json')
+
+with open(AUTHORIZED_USER_FILE) as fh:
+    AUTHORIZED_USER_FILE_DATA = json.load(fh)
+
 SERIVCE_ACCOUNT_FILE = os.path.join(DATA_DIR, 'service_account.json')
+
+with open(SERIVCE_ACCOUNT_FILE) as fh:
+    SERIVCE_ACCOUNT_FILE_DATA = json.load(fh)
 
 
 def test__load_credentials_from_file_invalid_json(tmpdir):
@@ -50,8 +58,15 @@ def test__load_credentials_from_file_invalid_type(tmpdir):
 
 
 def test__load_credentials_from_file_authorized_user():
-    with pytest.raises(NotImplementedError):
-        _default._load_credentials_from_file(AUTHORIZED_USER_FILE)
+    credentials = _default._load_credentials_from_file(AUTHORIZED_USER_FILE)
+    assert isinstance(credentials, google.oauth2.credentials.Credentials)
+    assert credentials.token is None
+    assert (credentials._refresh_token ==
+            AUTHORIZED_USER_FILE_DATA['refresh_token'])
+    assert credentials._client_id == AUTHORIZED_USER_FILE_DATA['client_id']
+    assert (credentials._client_secret ==
+            AUTHORIZED_USER_FILE_DATA['client_secret'])
+    assert credentials._token_uri == _default._GOOGLE_OAUTH2_TOKEN_ENDPOINT
 
 
 def test__load_credentials_from_file_service_account():

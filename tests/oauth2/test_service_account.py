@@ -12,21 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import json
 import os
 
 import mock
 import pytest
-from six.moves import http_client
-from six.moves import urllib
 
+from google.auth import _helpers
 from google.auth import crypt
-from google.auth import exceptions
 from google.auth import jwt
-from google.auth import service_account
+from google.oauth2 import service_account
 
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
 
 with open(os.path.join(DATA_DIR, 'privatekey.pem'), 'rb') as fh:
     PRIVATE_KEY_BYTES = fh.read()
@@ -159,26 +158,20 @@ class TestCredentials:
         payload = jwt.decode(token, PUBLIC_CERT_BYTES)
         assert payload['sub'] == 'user@example.com'
 
-    def test_refresh_success(self):
-        response = mock.Mock()
-        response.status = http_client.OK
-        response.data = json.dumps({
-            'access_token': 'token',
-            'expires_in': 500
-        }).encode('utf-8')
-        request_mock = mock.Mock(return_value=response)
+    @mock.patch('google.oauth2._client.jwt_grant')
+    def test_refresh_success(self, jwt_grant_mock):
+        jwt_grant_mock.return_value = (
+            'token', _helpers.now() + datetime.timedelta(seconds=500), None)
+        request_mock = mock.Mock()
 
         # Refresh credentials
         self.credentials.refresh(request_mock)
 
-        # Check request data
-        assert request_mock.called
-        request_body = request_mock.call_args[1]['body']
-        request_data = urllib.parse.parse_qs(request_body)
-        grant_type = request_data['grant_type'][0]
-        assertion = request_data['assertion'][0]
-
-        assert grant_type == service_account._JWT_TOKEN_GRANT_TYPE
+        # Check jwt grant call.
+        assert jwt_grant_mock.called
+        request, token_uri, assertion = jwt_grant_mock.call_args[0]
+        assert request == request_mock
+        assert token_uri == self.credentials._token_uri
         assert jwt.decode(assertion, PUBLIC_CERT_BYTES)
         # No further assertion done on the token, as there are separate tests
         # for checking the authorization grant assertion.
@@ -190,39 +183,11 @@ class TestCredentials:
         # expired)
         assert self.credentials.valid
 
-    def test_refresh_error(self):
-        response = mock.Mock()
-        response.status = http_client.BAD_REQUEST
-        response.data = json.dumps({
-            'error': 'error',
-            'error_description': 'error description'
-        }).encode('utf-8')
-        request_mock = mock.Mock(return_value=response)
-
-        with pytest.raises(exceptions.RefreshError) as excinfo:
-            self.credentials.refresh(request_mock)
-
-        assert excinfo.match(r'error: error description')
-
-    def test_refresh_error_non_json(self):
-        response = mock.Mock()
-        response.status = http_client.BAD_REQUEST
-        response.data = 'non-json error'.encode('utf-8')
-        request_mock = mock.Mock(return_value=response)
-
-        with pytest.raises(exceptions.RefreshError) as excinfo:
-            self.credentials.refresh(request_mock)
-
-        assert excinfo.match(r'non-json error')
-
-    def test_before_request_refreshes(self):
-        response = mock.Mock()
-        response.status = http_client.OK
-        response.data = json.dumps({
-            'access_token': 'token',
-            'expires_in': 500
-        }).encode('utf-8')
-        request_mock = mock.Mock(return_value=response)
+    @mock.patch('google.oauth2._client.jwt_grant')
+    def test_before_request_refreshes(self, jwt_grant_mock):
+        jwt_grant_mock.return_value = (
+            'token', _helpers.now() + datetime.timedelta(seconds=500), None)
+        request_mock = mock.Mock()
 
         # Credentials should start as invalid
         assert not self.credentials.valid
@@ -232,7 +197,7 @@ class TestCredentials:
             request_mock, 'GET', 'http://example.com?a=1#3', {})
 
         # The refresh endpoint should've been called.
-        assert request_mock.called
+        assert jwt_grant_mock.called
 
         # Credentials should now be valid.
         assert self.credentials.valid

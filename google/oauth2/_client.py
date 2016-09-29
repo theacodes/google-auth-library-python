@@ -31,6 +31,7 @@ from google.auth import _helpers
 from google.auth import exceptions
 
 _JWT_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:jwt-bearer'
+_REFRESH_GRANT_TYPE = 'refresh_token'
 
 
 def _handle_error_response(response_data):
@@ -99,7 +100,7 @@ def refresh_grant(request, token_uri, refresh_token, client_id, client_secret):
     For more details, see https://tools.ietf.org/html/rfc6749#section-6
     """
     body = {
-        'grant_type': 'refresh_token',
+        'grant_type': _REFRESH_GRANT_TYPE,
         'client_id': client_id,
         'client_secret': client_secret,
         'refresh_token': refresh_token,
