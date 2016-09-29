@@ -23,13 +23,17 @@ from google.auth import exceptions
 from google.auth import transport
 
 
+# TODO: Response adapter, even though urllib3's response already satisfies
+# the interface.
+
+
 class Request(transport.Request):
     """urllib3 request adapter
 
     Args:
         http (urllib3.requests.RequestMethods): An instance of any urllib3
-            class that implements :cls:`~urllib3.requests.RequestMethods`,
-            usually :cls:`urllib3.PoolManager`.
+            class that implements :class:`~urllib3.requests.RequestMethods`,
+            usually :class:`urllib3.PoolManager`.
     """
     def __init__(self, http):
         self.http = http
