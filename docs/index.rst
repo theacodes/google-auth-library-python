@@ -11,12 +11,12 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   reference/index
+   reference/modules
 
 Reference documentation
 =======================
 
-The :doc:`reference documentation <reference/index>` details the complete API for :mod:`google.auth`.
+The :doc:`reference documentation <reference/mmodules>` details the complete API for :mod:`google.auth` and :mod:`google.oauth2`.
 
 Indices and tables
 ==================

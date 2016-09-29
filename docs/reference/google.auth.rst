@@ -12,6 +12,7 @@ Subpackages
 .. toctree::
 
     google.auth.compute_engine
+    google.auth.transport
 
 Submodules
 ----------
@@ -22,6 +23,4 @@ Submodules
    google.auth.crypt
    google.auth.exceptions
    google.auth.jwt
-   google.auth.service_account
-   google.auth.transport
 
