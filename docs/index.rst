@@ -16,7 +16,7 @@ Contents:
 Reference documentation
 =======================
 
-The :doc:`reference documentation <reference/mmodules>` details the complete API for :mod:`google.auth` and :mod:`google.oauth2`.
+The :doc:`reference documentation <reference/modules>` details the complete API for :mod:`google.auth` and :mod:`google.oauth2`.
 
 Indices and tables
 ==================
