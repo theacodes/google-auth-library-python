@@ -17,14 +17,20 @@
 import json
 import os
 
+from six.moves import configparser
+import urllib3
+
 from google.auth import compute_engine
 from google.auth import exceptions
 from google.auth import jwt
 from google.auth.compute_engine import _metadata
+import google.auth.transport.urllib3
 import google.oauth2.credentials
 
-# Environment variable for explicit application default credentials.
+# Environment variable for explicit application default credentials and project
+# ID.
 _CREDENTIALS_ENV = 'GOOGLE_APPLICATION_CREDENTIALS'
+_PROJECT_ENV = 'GCLOUD_PROJECT'
 
 # Valid types accepted for file-based credentials.
 _AUTHORIZED_USER_TYPE = 'authorized_user'
@@ -41,12 +47,20 @@ _CLOUDSDK_CONFIG_ENV = 'CLOUDSDK_CONFIG'
 # The name of the file in the Cloud SDK config that contains default
 # credentials.
 _CLOUDSDK_CREDENTIALS_FILENAME = 'application_default_credentials.json'
+# The name of the file in the Cloud SDK config that contains the
+# active configurations
+_CLOUDSDK_ACTIVE_CONFIG_FILENAME = os.path.join(
+    'configurations', 'config_default')
+# The config section and key for the project ID in the cloud SDK config.
+_CLOUDSDK_PROJECT_CONFIG_SECTION = 'core'
+_CLOUDSDK_PROJECT_CONFIG_KEY = 'project'
+
 
 # Help message when no credentials can be found.
 _HELP_MESSAGE = (
-    'Could not automatically determine credentials. Please set {env} and '
-    're-run the application. For more information, please see '
-    'https://developers.google.com/accounts/docs'
+    'Could not automatically determine credentials. Please set {env} or '
+    'explicitly create credential and re-run the application. For more '
+    'information, please see https://developers.google.com/accounts/docs'
     '/application-default-credentials.'.format(env=_CREDENTIALS_ENV))
 
 
@@ -63,18 +77,21 @@ def _load_credentials_from_file(filename):
     credential_type = info.get('type')
 
     if credential_type == _AUTHORIZED_USER_TYPE:
-        return google.oauth2.credentials.Credentials(
+        credentials = google.oauth2.credentials.Credentials(
             None,
             refresh_token=info['refresh_token'],
             token_uri=_GOOGLE_OAUTH2_TOKEN_ENDPOINT,
             client_id=info['client_id'],
             client_secret=info['client_secret'])
+        # Authorized user credentials do not contain the project ID.
+        return credentials, None
 
     if credential_type == _SERVICE_ACCOUNT_TYPE:
         # TODO: This should actually be a weird polymorphic class that
         # is jwt.Credentials until create_scoped is called, then it becomes
         # service_account.Credentials.
-        return jwt.Credentials.from_service_account_info(info)
+        credentials = jwt.Credentials.from_service_account_info(info)
+        return credentials, info.get('project_id')
 
     else:
         raise exceptions.DefaultCredentialsError(
@@ -87,6 +104,26 @@ def _get_explicit_environ_credentials():
     explicit_file = os.environ.get(_CREDENTIALS_ENV)
     if explicit_file is not None:
         return _load_credentials_from_file(os.environ[_CREDENTIALS_ENV])
+    else:
+        return None, None
+
+
+def _get_gcloud_sdk_project_id(config_path):
+    config_file = os.path.join(config_path, _CLOUDSDK_ACTIVE_CONFIG_FILENAME)
+
+    if not os.path.exists(config_file):
+        return None
+
+    config = configparser.RawConfigParser()
+
+    try:
+        config.read(config_file)
+    except configparser.Error:
+        return None
+
+    if config.has_section(_CLOUDSDK_PROJECT_CONFIG_SECTION):
+        return config.get(
+            _CLOUDSDK_PROJECT_CONFIG_SECTION, _CLOUDSDK_PROJECT_CONFIG_KEY)
 
 
 def _get_gcloud_sdk_credentials():
@@ -111,19 +148,38 @@ def _get_gcloud_sdk_credentials():
     credentials_filename = os.path.join(
         config_path, _CLOUDSDK_CREDENTIALS_FILENAME)
 
-    if os.path.exists(credentials_filename):
-        return _load_credentials_from_file(credentials_filename)
+    if not os.path.exists(credentials_filename):
+        return None, None
+
+    credentials, project_id = _load_credentials_from_file(
+        credentials_filename)
+
+    if not project_id:
+        project_id = _get_gcloud_sdk_project_id(config_path)
+
+    return credentials, project_id
 
 
 def _get_gae_credentials():
-    return None
+    return None, None
 
 
 def _get_gce_credentials():
     # TODO: Ping now requires a request argument. Figure out how to deal with
-    # that.
-    if _metadata.ping(request=None):
-        return compute_engine.Credentials()
+    # that. Temporarily using the urllib3 transport.
+    http = urllib3.PoolManager()
+    request = google.auth.transport.urllib3.Request(http)
+
+    if _metadata.ping(request=request):
+        # Get the project ID.
+        try:
+            project_id = _metadata.get(request, 'project/project-id')
+        except exceptions.TransportError:
+            project_id = None
+
+        return compute_engine.Credentials(), project_id
+    else:
+        return None, None
 
 
 def default():
@@ -138,6 +194,8 @@ def default():
             If no credentials were found, or if the credentials found were
             invalid.
     """
+    explicit_project_id = os.environ.get(_PROJECT_ENV)
+
     checkers = (
         _get_explicit_environ_credentials,
         _get_gcloud_sdk_credentials,
@@ -145,8 +203,8 @@ def default():
         _get_gce_credentials)
 
     for checker in checkers:
-        credentials = checker()
+        credentials, project_id = checker()
         if credentials is not None:
-            return credentials
+            return credentials, explicit_project_id or project_id
 
     raise exceptions.DefaultCredentialsError(_HELP_MESSAGE)
