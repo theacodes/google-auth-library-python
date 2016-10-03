@@ -61,7 +61,7 @@ def ping(request, timeout=_METADATA_DEFAULT_TIMEOUT):
     #       "unlikely".
     try:
         response = request(
-            'GET', _METADATA_IP_ROOT, headers=_METADATA_HEADERS,
+            url=_METADATA_IP_ROOT, method='GET', headers=_METADATA_HEADERS,
             timeout=timeout)
         return response.status == http_client.OK
 
@@ -95,7 +95,7 @@ def get(request, path, root=_METADATA_ROOT, recursive=None):
     url = urlparse.urljoin(root, path)
     url = _helpers.update_query(url, {'recursive': recursive})
 
-    response = request('GET', url, headers=_METADATA_HEADERS)
+    response = request(url=url, method='GET', headers=_METADATA_HEADERS)
 
     if response.status == http_client.OK:
         content = _helpers.from_bytes(response.data)
