@@ -19,8 +19,7 @@ DEPENDENCIES = (
     'pyasn1>=0.1.7',
     'pyasn1-modules>=0.0.5',
     'rsa>=3.1.4',
-    'six>=1.6.1',
-    'urllib3>=1.0')
+    'six>=1.6.1',)
 
 
 with open('README.rst', 'r') as fh:

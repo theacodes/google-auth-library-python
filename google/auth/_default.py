@@ -18,13 +18,12 @@ import json
 import os
 
 from six.moves import configparser
-import urllib3
 
 from google.auth import compute_engine
 from google.auth import exceptions
 from google.auth import jwt
 from google.auth.compute_engine import _metadata
-import google.auth.transport.urllib3
+import google.auth.transport._http_client
 import google.oauth2.credentials
 
 # Environment variable for explicit application default credentials and project
@@ -196,10 +195,11 @@ def _get_gae_credentials():
 
 def _get_gce_credentials():
     """Gets credentials and project ID from the GCE Metadata Service."""
-    # TODO: Ping now requires a request argument. Figure out how to deal with
-    # that. Temporarily using the urllib3 transport.
-    http = urllib3.PoolManager()
-    request = google.auth.transport.urllib3.Request(http)
+    # Ping requires a transport, but we want application default credentials
+    # to require no arguments. So, we'll use the _http_client transport which
+    # uses http.client. This is only acceptable because the metadata server
+    # doesn't do SSL and never requires proxies.
+    request = google.auth.transport._http_client.Request()
 
     if _metadata.ping(request=request):
         # Get the project ID.

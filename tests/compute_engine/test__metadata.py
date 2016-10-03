@@ -50,13 +50,12 @@ def test_ping_success(mock_request):
         'GET',
         _metadata._METADATA_IP_ROOT,
         headers=_metadata._METADATA_HEADERS,
-        timeout=_metadata._METADATA_DEFAULT_TIMEOUT,
-        retries=False)
+        timeout=_metadata._METADATA_DEFAULT_TIMEOUT)
 
 
 def test_ping_failure(mock_request):
     request_mock = mock_request('')
-    request_mock.side_effect = Exception()
+    request_mock.side_effect = exceptions.TransportError()
 
     assert not _metadata.ping(request_mock)
 

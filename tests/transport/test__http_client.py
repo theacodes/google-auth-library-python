@@ -12,22 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mock
-import urllib3
-
-import google.auth.transport.urllib3
+import google.auth.transport._http_client
 from tests.transport import compliance
 
 
 class TestRequestResponse(compliance.RequestResponseTests):
     def make_request(self):
-        http = urllib3.PoolManager()
-        return google.auth.transport.urllib3.Request(http)
-
-
-def test_timeout():
-    http = mock.Mock()
-    request = google.auth.transport.urllib3.Request(http)
-    request(url='http://example.com', method='GET', timeout=5)
-
-    assert http.request.call_args[1]['timeout'] == 5
+        return google.auth.transport._http_client.Request()

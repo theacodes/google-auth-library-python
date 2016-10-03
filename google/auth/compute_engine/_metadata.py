@@ -62,12 +62,10 @@ def ping(request, timeout=_METADATA_DEFAULT_TIMEOUT):
     try:
         response = request(
             'GET', _METADATA_IP_ROOT, headers=_METADATA_HEADERS,
-            timeout=timeout, retries=False)
+            timeout=timeout)
         return response.status == http_client.OK
 
-    # TODO: Remove bare except when transport has a unified exception.
-    # pylint: disable=bare-except
-    except:  # socket.timeout or socket.error(64, 'Host is down')
+    except exceptions.TransportError:
         # logger.info('Timeout attempting to reach GCE metadata service.')
         return False
 
