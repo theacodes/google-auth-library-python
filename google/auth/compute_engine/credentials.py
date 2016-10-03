@@ -52,16 +52,17 @@ class Credentials(credentials.Credentials,
         super(Credentials, self).__init__()
         self._service_account_email = service_account_email
 
-    def _retrieve_info(self, http):
+    def _retrieve_info(self, request):
         """Retrieve information about the service account.
 
         Updates the scopes and retrieves the full service account email.
 
         Args:
-            http (Any): an object to be used to make HTTP requests.
+            request (google.auth.transport.Request): A callable used to make
+                HTTP requests.
         """
         info = _metadata.get_service_account_info(
-            http,
+            request,
             service_account=self._service_account_email)
 
         self._service_account_email = info['email']
@@ -69,18 +70,25 @@ class Credentials(credentials.Credentials,
         # (pylint doesn't recognize that this is defined in ScopedCredentials)
         self._scopes = info['scopes']
 
-    def refresh(self, http):
+    def refresh(self, request):
         """Refresh the access token and scopes.
 
         Args:
-            http (Any): The transport HTTP object.
+            request (google.auth.transport.Request): A callable used to make
+                HTTP requests.
+
+        Raises:
+            google.auth.exceptions.RefreshError: If the Compute Engine metadata
+                service can't be reached if if the instance has not
+                credentials.
         """
         try:
-            self._retrieve_info(http)
+            self._retrieve_info(request)
             self.token, self.expiry = _metadata.get_service_account_token(
-                self._service_account_email)
-        except http_client.HTTPException as exc:
-            raise exceptions.RefreshError(*exc.args)
+                request,
+                service_account=self._service_account_email)
+        except exceptions.TransportError as exc:
+            raise exceptions.RefreshError(exc)
 
     @property
     def requires_scopes(self):

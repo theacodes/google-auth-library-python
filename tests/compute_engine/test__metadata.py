@@ -47,8 +47,8 @@ def test_ping_success(mock_request):
     assert _metadata.ping(request_mock)
 
     request_mock.assert_called_once_with(
-        'GET',
-        _metadata._METADATA_IP_ROOT,
+        method='GET',
+        url=_metadata._METADATA_IP_ROOT,
         headers=_metadata._METADATA_HEADERS,
         timeout=_metadata._METADATA_DEFAULT_TIMEOUT)
 
@@ -68,8 +68,8 @@ def test_get_success_json(mock_request):
     result = _metadata.get(request_mock, PATH)
 
     request_mock.assert_called_once_with(
-        'GET',
-        _metadata._METADATA_ROOT + PATH,
+        method='GET',
+        url=_metadata._METADATA_ROOT + PATH,
         headers=_metadata._METADATA_HEADERS)
     assert result['foo'] == 'bar'
 
@@ -81,8 +81,8 @@ def test_get_success_text(mock_request):
     result = _metadata.get(request_mock, PATH)
 
     request_mock.assert_called_once_with(
-        'GET',
-        _metadata._METADATA_ROOT + PATH,
+        method='GET',
+        url=_metadata._METADATA_ROOT + PATH,
         headers=_metadata._METADATA_HEADERS)
     assert result == data
 
@@ -97,8 +97,8 @@ def test_get_failure(mock_request):
     assert excinfo.match(r'Metadata error')
 
     request_mock.assert_called_once_with(
-        'GET',
-        _metadata._METADATA_ROOT + PATH,
+        method='GET',
+        url=_metadata._METADATA_ROOT + PATH,
         headers=_metadata._METADATA_HEADERS)
 
 
@@ -111,8 +111,8 @@ def test_get_service_account_token(now, mock_request):
     token, expiry = _metadata.get_service_account_token(request_mock)
 
     request_mock.assert_called_once_with(
-        'GET',
-        _metadata._METADATA_ROOT + PATH + '/token',
+        method='GET',
+        url=_metadata._METADATA_ROOT + PATH + '/token',
         headers=_metadata._METADATA_HEADERS)
     assert token == 'token'
     assert expiry == now() + datetime.timedelta(seconds=500)
@@ -126,8 +126,8 @@ def test_get_service_account_info(mock_request):
     info = _metadata.get_service_account_info(request_mock)
 
     request_mock.assert_called_once_with(
-        'GET',
-        _metadata._METADATA_ROOT + PATH + '/?recursive=True',
+        method='GET',
+        url=_metadata._METADATA_ROOT + PATH + '/?recursive=True',
         headers=_metadata._METADATA_HEADERS)
 
     assert info['foo'] == 'bar'

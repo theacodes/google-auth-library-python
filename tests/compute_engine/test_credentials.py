@@ -16,7 +16,6 @@ import datetime
 
 import mock
 import pytest
-from six.moves import http_client
 
 from google.auth import exceptions
 from google.auth.compute_engine import credentials
@@ -69,7 +68,7 @@ class TestCredentials:
 
     @mock.patch('google.auth.compute_engine._metadata.get')
     def test_refresh_error(self, get_mock):
-        get_mock.side_effect = http_client.HTTPException('http error')
+        get_mock.side_effect = exceptions.TransportError('http error')
 
         with pytest.raises(exceptions.RefreshError) as excinfo:
             self.credentials.refresh(None)
