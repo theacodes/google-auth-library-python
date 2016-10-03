@@ -257,13 +257,13 @@ def default():
         credentials, project_id = google.auth.default()
 
     Returns:
-        Tuple[google.auth.credentials.Credentials, Optional[str]]: the current
-            environment's credentials and project ID. Project ID may be None,
-            which indicates that the Project ID could not be ascertained from
-            the environment.
+        Tuple[~google.auth.credentials.Credentials, Optional[str]]:
+            the current environment's credentials and project ID. Project ID
+            may be None, which indicates that the Project ID could not be
+            ascertained from the environment.
 
     Raises:
-        google.auth.exceptions.DefaultCredentialsError:
+        ~google.auth.exceptions.DefaultCredentialsError:
             If no credentials were found, or if the credentials found were
             invalid.
     """

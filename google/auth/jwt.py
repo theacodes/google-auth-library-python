@@ -170,7 +170,7 @@ def decode(token, certs=None, verify=True, audience=None):
 
     Args:
         token (string): The encoded JWT.
-        certs (Union[str, bytes, or Mapping]): The certificate used to
+        certs (Union[str, bytes, Mapping]): The certificate used to
             validate. If bytes or string, it must the the public key
             certificate in PEM format. If a mapping, it must be a mapping of
             key IDs to public key certificates in PEM format. The mapping must
