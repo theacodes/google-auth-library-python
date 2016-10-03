@@ -18,8 +18,6 @@ This module provides authentication for application running on Google Compute
 Engine using the Compute Engine metadata server.
 """
 
-from six.moves import http_client
-
 from google.auth import credentials
 from google.auth import exceptions
 from google.auth.compute_engine import _metadata
