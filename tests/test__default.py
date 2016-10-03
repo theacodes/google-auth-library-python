@@ -221,9 +221,10 @@ def test__get_gcloud_sdk_credentials_windows_no_appdata(
 @mock.patch(
     'google.auth._default._get_gcloud_sdk_project_id',
     return_value=mock.sentinel.project_id)
+@mock.patch('os.path.exists', return_value=True)
 @LOAD_FILE_PATCH
 def test__get_gcloud_sdk_credentials_no_project_id(
-        mock_load, mock_get_project_id):
+        mock_load, unused_mock_exists, mock_get_project_id):
     mock_load.return_value = (mock.sentinel.credentials, None)
 
     credentials, project_id = _default._get_gcloud_sdk_credentials()
