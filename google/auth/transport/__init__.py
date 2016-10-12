@@ -29,6 +29,10 @@ import abc
 import six
 
 
+DEFAULT_REFRESH_STATUS_CODES = (403,)
+DEFAULT_MAX_REFRESH_ATTEMPTS = 2
+
+
 @six.add_metaclass(abc.ABCMeta)
 class Response(object):
     """HTTP Response data."""

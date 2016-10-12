@@ -16,15 +16,16 @@
 
 from __future__ import absolute_import
 
+import logging
+
 import urllib3
 import urllib3.exceptions
+import urllib3.request
 
 from google.auth import exceptions
 from google.auth import transport
 
-
-# TODO: Response adapter, even though urllib3's response already satisfies
-# the interface.
+_LOGGER = logging.getLogger(__name__)
 
 
 class Request(transport.Request):
@@ -70,3 +71,96 @@ class Request(transport.Request):
                 method, url, body=body, headers=headers, **kwargs)
         except urllib3.exceptions.HTTPError as exc:
             raise exceptions.TransportError(exc)
+
+
+class AuthorizedHttp(urllib3.request.RequestMethods):
+    """An authorized urllib3 HTTP class.
+
+    Implements :class:`urllib3.request.RequestMethods` and can be used just
+    like any other :class:`urllib3.PoolManager`.
+
+    Provides an implementation of :meth:`urlopen` that handles adding the
+    credentials to the request headers and refreshing credentials as needed.
+
+    Args:
+        credentials (google.auth.credentials.Credentials): The credentials to
+            add to the request.
+        http (urllib3.PoolManager): The underlying HTTP object to
+            use to make requests.
+        refresh_status_codes (Sequence): Which HTTP status code indicate that
+            credentials should be refreshed and the request should be retried.
+    """
+    def __init__(self, credentials, http=None,
+                 refresh_status_codes=transport.DEFAULT_REFRESH_STATUS_CODES,
+                 max_refresh_attempts=transport.DEFAULT_MAX_REFRESH_ATTEMPTS):
+        self.http = http
+        self.credentials = credentials
+        self.refresh_status_codes = refresh_status_codes
+        self.max_refresh_attempts = max_refresh_attempts
+        self.__request = Request(self.http)
+
+    def urlopen(self, method, url, body=None, headers=None, **kwargs):
+        """Implementation of urllib3's urlopen."""
+
+        # Use a kwarg for this instead of an attribute to maintain
+        # thread-safety.
+        _credential_refresh_attempt = kwargs.pop(
+            '_credential_refresh_attempt', 0)
+
+        if headers is None:
+            headers = self.headers or {}
+
+        # Make a copy of the headers. They will be modified by the credentials
+        # and we want to pass the original headers if we recurse.
+        request_headers = headers.copy()
+
+        self.credentials.before_request(
+            self.__request, method, url, request_headers)
+
+        response = self.http.urlopen(
+            method, url, body=body, headers=request_headers, **kwargs)
+
+        # If the response indicated that the credentials needed to be
+        # refreshed, then refresh the credentials and re-attempt the
+        # request.
+        # A stored token may expire between the time it is retrieved and
+        # the time the request is made, so we may need to try twice.
+        # The reason urllib3's retries aren't used is because they
+        # don't allow you to modify the request headers. :/
+        if (response.status in self.refresh_status_codes
+                and _credential_refresh_attempt < self.max_refresh_attempts):
+
+            _LOGGER.info(
+                'Refreshing credentials due to a %s response. Attempt %s/%s.',
+                response.status, _credential_refresh_attempt + 1,
+                self.max_refresh_attempts)
+
+            self.credentials.refresh(self.__request)
+
+            # Recurse. Pass in the original headers, not our modified set.
+            return self.urlopen(
+                method, url, body=body, headers=headers,
+                _credential_refresh_attempt=_credential_refresh_attempt + 1,
+                **kwargs)
+
+        return response
+
+    # Proxy methods for compliance with the urllib3.PoolManager interface
+
+    def __enter__(self):
+        """Proxy to self.http."""
+        return self.http.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Proxy to self.http."""
+        return self.http.__exit__(exc_type, exc_val, exc_tb)
+
+    @property
+    def headers(self):
+        """Proxy to self.http."""
+        return self.http.headers
+
+    @headers.setter
+    def headers(self, value):
+        """Proxy to self.http."""
+        self.http.headers = value
